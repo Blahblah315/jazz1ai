@@ -1,0 +1,1457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Forge Coder – AI Coding Assistant</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:  #090a0f;
+    --bg2: #0e1017;
+    --bg3: #141622;
+    --bg4: #1a1d2c;
+    --bd:  rgba(255,255,255,.05);
+    --bd2: rgba(255,255,255,.12);
+    --tx:  #e3e6f0;
+    --tx2: #9297b5;
+    --tx3: #525975;
+    --acc: #00e5bc;
+    --acc2: #00b896;
+    --red: #ff5577;
+    --yellow: #f5c842;
+    --blue: #5b8fff;
+    --purple: #a78bfa;
+    --r: 10px;
+    --r2: 6px;
+    --font: 'Plus Jakarta Sans', sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+    --sidebar-w: 260px;
+    --header-h: 54px;
+  }
+
+  html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(--tx); font-family: var(--font); font-size: 14px; }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--bd2); border-radius: 99px; }
+
+  /* ── Layout shell ── */
+  #root { display: flex; height: 100vh; overflow: hidden; }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    width: var(--sidebar-w);
+    min-width: var(--sidebar-w);
+    background: var(--bg2);
+    border-right: 1px solid var(--bd);
+    display: flex;
+    flex-direction: column;
+    transition: transform .25s ease, width .25s ease, min-width .25s ease;
+    overflow: hidden;
+    z-index: 20;
+  }
+  .sidebar.collapsed {
+    width: 0;
+    min-width: 0;
+    border-right-color: transparent;
+  }
+  .sidebar-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 16px 14px;
+    border-bottom: 1px solid var(--bd);
+    flex-shrink: 0;
+  }
+  .logo-icon {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, var(--acc) 0%, #00b896 100%);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .logo-text { font-weight: 700; font-size: 15px; letter-spacing: -.3px; white-space: nowrap; }
+  .logo-text span { color: var(--acc); }
+
+  .sidebar-actions {
+    padding: 12px;
+    flex-shrink: 0;
+  }
+  .btn-new-chat {
+    width: 100%;
+    display: flex; align-items: center; gap: 8px;
+    padding: 9px 12px;
+    background: var(--acc);
+    color: #000;
+    border: none;
+    border-radius: var(--r2);
+    font-family: var(--font);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .15s, transform .1s;
+    white-space: nowrap;
+  }
+  .btn-new-chat:hover { background: var(--acc2); }
+  .btn-new-chat:active { transform: scale(.98); }
+
+  .sidebar-section {
+    padding: 8px 12px 4px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--tx3);
+    flex-shrink: 0;
+  }
+
+  .conv-list { flex: 1; overflow-y: auto; padding: 4px 8px; }
+  .conv-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 10px;
+    border-radius: var(--r2);
+    cursor: pointer;
+    transition: background .15s;
+    white-space: nowrap;
+    overflow: hidden;
+    position: relative;
+  }
+  .conv-item:hover { background: var(--bg4); }
+  .conv-item.active { background: rgba(0,229,188,.08); }
+  .conv-item.active::before {
+    content: '';
+    position: absolute; left: 0; top: 20%; bottom: 20%;
+    width: 2px; border-radius: 99px;
+    background: var(--acc);
+  }
+  .conv-icon { color: var(--tx3); flex-shrink: 0; }
+  .conv-item.active .conv-icon { color: var(--acc); }
+  .conv-name {
+    font-size: 13px; overflow: hidden; text-overflow: ellipsis;
+    flex: 1; color: var(--tx2);
+  }
+  .conv-item.active .conv-name { color: var(--tx); font-weight: 500; }
+  .conv-date { font-size: 10px; color: var(--tx3); flex-shrink: 0; }
+
+  .sidebar-footer {
+    border-top: 1px solid var(--bd);
+    padding: 12px;
+    flex-shrink: 0;
+  }
+  .user-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px;
+    border-radius: var(--r2);
+    cursor: pointer;
+    transition: background .15s;
+  }
+  .user-row:hover { background: var(--bg4); }
+  .avatar {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--purple) 0%, var(--blue) 100%);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; color: #fff; flex-shrink: 0;
+  }
+  .user-info { flex: 1; overflow: hidden; }
+  .user-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .user-plan { font-size: 11px; color: var(--acc); }
+
+  /* ── Main area ── */
+  .main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-width: 0;
+  }
+
+  /* ── Header ── */
+  .header {
+    height: var(--header-h);
+    background: var(--bg2);
+    border-bottom: 1px solid var(--bd);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0 12px;
+    flex-shrink: 0;
+    z-index: 10;
+  }
+  .header-toggle {
+    width: 32px; height: 32px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: var(--r2);
+    border: none; background: transparent;
+    color: var(--tx2); cursor: pointer;
+    transition: background .15s, color .15s;
+    flex-shrink: 0;
+  }
+  .header-toggle:hover { background: var(--bg4); color: var(--tx); }
+
+  .header-title {
+    font-size: 14px; font-weight: 600;
+    margin-right: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px;
+  }
+
+  .tabs {
+    display: flex; gap: 2px;
+    margin-left: auto;
+    background: var(--bg3);
+    border-radius: var(--r2);
+    padding: 3px;
+    border: 1px solid var(--bd);
+  }
+  .tab-btn {
+    display: flex; align-items: center; gap: 5px;
+    padding: 5px 10px;
+    border-radius: 4px;
+    border: none; background: transparent;
+    color: var(--tx3);
+    font-family: var(--font); font-size: 12px; font-weight: 600;
+    cursor: pointer;
+    transition: background .15s, color .15s;
+    white-space: nowrap;
+  }
+  .tab-btn:hover { color: var(--tx2); }
+  .tab-btn.active { background: var(--bg4); color: var(--tx); box-shadow: 0 1px 3px rgba(0,0,0,.4); }
+  .tab-btn.active svg { color: var(--acc); }
+
+  .header-actions {
+    display: flex; gap: 4px; margin-left: 8px;
+  }
+  .icon-btn {
+    width: 32px; height: 32px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: var(--r2); border: none;
+    background: transparent; color: var(--tx2);
+    cursor: pointer; transition: background .15s, color .15s;
+  }
+  .icon-btn:hover { background: var(--bg4); color: var(--tx); }
+
+  /* ── Content area ── */
+  .content { flex: 1; display: flex; overflow: hidden; position: relative; }
+
+  /* ── Chat pane ── */
+  .chat-pane {
+    flex: 1; display: flex; flex-direction: column;
+    overflow: hidden; min-width: 0;
+  }
+  .messages {
+    flex: 1; overflow-y: auto;
+    padding: 24px 0;
+    display: flex; flex-direction: column; gap: 0;
+  }
+  .msg-wrapper {
+    padding: 0 20px;
+    display: flex; flex-direction: column;
+    gap: 0;
+  }
+  .msg-wrapper + .msg-wrapper { margin-top: 6px; }
+
+  .msg-row {
+    display: flex; gap: 10px;
+    align-items: flex-start;
+  }
+  .msg-row.user { flex-direction: row-reverse; }
+
+  .msg-avatar {
+    width: 28px; height: 28px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; margin-top: 2px; font-size: 11px; font-weight: 700;
+  }
+  .msg-avatar.ai {
+    background: linear-gradient(135deg, var(--acc) 0%, #00b896 100%);
+    color: #000;
+  }
+  .msg-avatar.user-av {
+    background: linear-gradient(135deg, var(--purple) 0%, var(--blue) 100%);
+    color: #fff;
+  }
+
+  .msg-bubble {
+    max-width: 72%;
+    padding: 10px 14px;
+    border-radius: 12px;
+    font-size: 13.5px;
+    line-height: 1.6;
+  }
+  .msg-row.user .msg-bubble {
+    background: rgba(0,229,188,.12);
+    border: 1px solid rgba(0,229,188,.2);
+    border-bottom-right-radius: 3px;
+    color: var(--tx);
+  }
+  .msg-row.ai .msg-bubble {
+    background: var(--bg3);
+    border: 1px solid var(--bd);
+    border-bottom-left-radius: 3px;
+    color: var(--tx);
+  }
+
+  .msg-meta {
+    font-size: 10px; color: var(--tx3);
+    padding: 3px 38px;
+    display: flex; gap: 8px; align-items: center;
+  }
+  .msg-row.user + .msg-meta { text-align: right; justify-content: flex-end; }
+
+  /* code block inside bubble */
+  .code-block {
+    margin-top: 10px;
+    background: var(--bg);
+    border: 1px solid var(--bd2);
+    border-radius: var(--r2);
+    overflow: hidden;
+  }
+  .code-block-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 6px 12px;
+    background: var(--bg4);
+    border-bottom: 1px solid var(--bd);
+    font-size: 11px; color: var(--tx3);
+    font-family: var(--mono);
+  }
+  .code-block-header span { color: var(--acc); font-weight: 500; }
+  .copy-btn {
+    display: flex; align-items: center; gap: 4px;
+    padding: 3px 8px; border-radius: 4px; border: 1px solid var(--bd2);
+    background: transparent; color: var(--tx3);
+    font-size: 10px; font-family: var(--font); font-weight: 500;
+    cursor: pointer; transition: color .15s, border-color .15s;
+  }
+  .copy-btn:hover { color: var(--tx); border-color: var(--bd2); }
+  .copy-btn.copied { color: var(--acc); border-color: var(--acc); }
+  .code-content {
+    padding: 14px;
+    font-family: var(--mono);
+    font-size: 12.5px;
+    line-height: 1.7;
+    overflow-x: auto;
+    color: var(--tx);
+  }
+
+  /* ── Syntax token colours ── */
+  .t-kw   { color: #7b8cde; }
+  .t-fn   { color: #79d4ff; }
+  .t-str  { color: #c8e57a; }
+  .t-cm   { color: var(--tx3); font-style: italic; }
+  .t-nb   { color: var(--acc); }
+  .t-num  { color: #f7c45e; }
+  .t-op   { color: #ff9f7b; }
+  .t-tag  { color: #e97b7b; }
+  .t-attr { color: #79d4ff; }
+  .t-val  { color: #c8e57a; }
+
+  /* ── Suggestions ── */
+  .suggestions {
+    padding: 0 20px 20px;
+  }
+  .sugg-title {
+    font-size: 12px; color: var(--tx3); font-weight: 600;
+    margin-bottom: 10px; text-transform: uppercase; letter-spacing: .06em;
+  }
+  .sugg-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 8px;
+  }
+  .sugg-card {
+    padding: 12px 14px;
+    background: var(--bg3);
+    border: 1px solid var(--bd);
+    border-radius: var(--r);
+    cursor: pointer;
+    transition: border-color .15s, background .15s, transform .1s;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .sugg-card:hover {
+    border-color: rgba(0,229,188,.3);
+    background: rgba(0,229,188,.04);
+    transform: translateY(-1px);
+  }
+  .sugg-card:active { transform: translateY(0); }
+  .sugg-card-icon {
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .sugg-card-title { font-size: 12.5px; font-weight: 600; color: var(--tx); line-height: 1.3; }
+  .sugg-card-desc  { font-size: 11px; color: var(--tx3); line-height: 1.4; }
+
+  /* ── Input bar ── */
+  .input-bar {
+    padding: 12px 20px;
+    background: var(--bg2);
+    border-top: 1px solid var(--bd);
+    flex-shrink: 0;
+  }
+  .input-wrap {
+    background: var(--bg3);
+    border: 1px solid var(--bd2);
+    border-radius: var(--r);
+    transition: border-color .2s;
+    overflow: hidden;
+  }
+  .input-wrap:focus-within {
+    border-color: rgba(0,229,188,.5);
+    box-shadow: 0 0 0 3px rgba(0,229,188,.06);
+  }
+  .input-top {
+    display: flex; align-items: flex-end; gap: 8px;
+    padding: 10px 12px 8px;
+  }
+  .input-textarea {
+    flex: 1; background: transparent; border: none; outline: none;
+    color: var(--tx); font-family: var(--font); font-size: 13.5px;
+    line-height: 1.5; resize: none; min-height: 22px; max-height: 160px;
+    overflow-y: auto;
+  }
+  .input-textarea::placeholder { color: var(--tx3); }
+  .input-send {
+    width: 32px; height: 32px; flex-shrink: 0;
+    background: var(--acc); border: none; border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: background .15s, transform .1s;
+    color: #000;
+  }
+  .input-send:hover { background: var(--acc2); }
+  .input-send:active { transform: scale(.9); }
+  .input-send:disabled { background: var(--bg4); color: var(--tx3); cursor: not-allowed; }
+
+  .input-bottom {
+    display: flex; align-items: center; gap: 6px;
+    padding: 0 12px 8px;
+  }
+  .attach-btn {
+    display: flex; align-items: center; gap: 5px;
+    padding: 4px 8px; border-radius: 5px; border: 1px solid var(--bd);
+    background: transparent; color: var(--tx3);
+    font-size: 11px; font-family: var(--font); font-weight: 500;
+    cursor: pointer; transition: color .15s, border-color .15s;
+  }
+  .attach-btn:hover { color: var(--tx2); border-color: var(--bd2); }
+  .input-hint { margin-left: auto; font-size: 10px; color: var(--tx3); }
+
+  /* ── File chip ── */
+  .file-chips { display: flex; gap: 6px; flex-wrap: wrap; padding: 0 12px 8px; }
+  .file-chip {
+    display: flex; align-items: center; gap: 5px;
+    padding: 3px 8px 3px 6px;
+    background: var(--bg4); border: 1px solid var(--bd);
+    border-radius: 20px; font-size: 11px; color: var(--tx2);
+  }
+  .file-chip svg { color: var(--blue); }
+  .chip-remove {
+    margin-left: 2px; background: none; border: none;
+    color: var(--tx3); cursor: pointer; line-height: 1;
+    font-size: 13px; padding: 0 2px;
+    transition: color .15s;
+  }
+  .chip-remove:hover { color: var(--red); }
+
+  /* ── Code editor pane ── */
+  .editor-pane {
+    flex: 1; display: flex; flex-direction: column;
+    background: var(--bg); min-width: 0; overflow: hidden;
+  }
+  .editor-topbar {
+    height: 40px; background: var(--bg2);
+    border-bottom: 1px solid var(--bd);
+    display: flex; align-items: center; gap: 0;
+    flex-shrink: 0; overflow-x: auto;
+  }
+  .file-tab {
+    display: flex; align-items: center; gap: 6px;
+    padding: 0 14px;
+    height: 100%;
+    border-right: 1px solid var(--bd);
+    font-size: 12px; color: var(--tx2);
+    cursor: pointer; transition: background .15s, color .15s;
+    white-space: nowrap; flex-shrink: 0;
+  }
+  .file-tab.active {
+    background: var(--bg);
+    color: var(--tx);
+    position: relative;
+  }
+  .file-tab.active::after {
+    content: '';
+    position: absolute; bottom: 0; left: 0; right: 0;
+    height: 2px; background: var(--acc);
+  }
+  .file-tab .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--yellow); flex-shrink: 0;
+  }
+
+  .editor-body {
+    flex: 1; display: flex; overflow: hidden;
+  }
+  .line-nums {
+    padding: 16px 8px 16px 12px;
+    font-family: var(--mono); font-size: 12.5px;
+    line-height: 1.7;
+    color: var(--tx3);
+    text-align: right;
+    background: var(--bg);
+    border-right: 1px solid var(--bd);
+    flex-shrink: 0;
+    user-select: none;
+    overflow-y: hidden;
+  }
+  .editor-code {
+    flex: 1; padding: 16px; overflow: auto;
+    font-family: var(--mono); font-size: 12.5px;
+    line-height: 1.7; color: var(--tx);
+    white-space: pre;
+    tab-size: 2;
+  }
+
+  /* ── Preview pane ── */
+  .preview-pane {
+    flex: 1; display: flex; flex-direction: column;
+    background: var(--bg); min-width: 0; overflow: hidden;
+  }
+  .preview-topbar {
+    height: 40px; background: var(--bg2);
+    border-bottom: 1px solid var(--bd);
+    display: flex; align-items: center; gap: 8px;
+    padding: 0 12px; flex-shrink: 0;
+  }
+  .preview-url {
+    flex: 1; background: var(--bg3);
+    border: 1px solid var(--bd); border-radius: 5px;
+    padding: 4px 10px; font-size: 12px; font-family: var(--mono);
+    color: var(--tx2); display: flex; align-items: center; gap: 6px;
+  }
+  .preview-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .preview-body { flex: 1; display: flex; align-items: center; justify-content: center; }
+  .preview-frame {
+    width: 100%; height: 100%;
+    background: #fff;
+    border: none;
+  }
+  .preview-placeholder {
+    display: flex; flex-direction: column; align-items: center; gap: 16px;
+    color: var(--tx3); text-align: center;
+  }
+  .preview-placeholder .big-icon {
+    width: 64px; height: 64px;
+    background: var(--bg3); border-radius: 16px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--tx3);
+  }
+
+  /* ── Split workspace ── */
+  .split-pane {
+    flex: 1; display: flex; overflow: hidden;
+  }
+  .split-divider {
+    width: 4px; flex-shrink: 0;
+    background: var(--bd); cursor: col-resize;
+    transition: background .15s;
+  }
+  .split-divider:hover { background: var(--acc); }
+
+  /* ── Typing indicator ── */
+  .typing-dots { display: flex; gap: 4px; align-items: center; padding: 4px 0; }
+  .typing-dots span {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--tx3);
+    animation: bounce 1.4s infinite ease-in-out;
+  }
+  .typing-dots span:nth-child(2) { animation-delay: .2s; }
+  .typing-dots span:nth-child(3) { animation-delay: .4s; }
+  @keyframes bounce {
+    0%, 60%, 100% { transform: translateY(0); opacity: .5; }
+    30% { transform: translateY(-5px); opacity: 1; }
+  }
+
+  /* ── Settings modal ── */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.7);
+    backdrop-filter: blur(4px);
+    z-index: 100;
+    display: flex; align-items: center; justify-content: center;
+    animation: fadeIn .2s ease;
+  }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  .modal {
+    background: var(--bg2);
+    border: 1px solid var(--bd2);
+    border-radius: 14px;
+    width: min(500px, calc(100vw - 32px));
+    max-height: calc(100vh - 64px);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+    animation: slideUp .2s ease;
+    box-shadow: 0 24px 80px rgba(0,0,0,.8);
+  }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .modal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--bd);
+  }
+  .modal-title { font-size: 15px; font-weight: 700; }
+  .modal-close {
+    width: 28px; height: 28px;
+    display: flex; align-items: center; justify-content: center;
+    border: none; background: var(--bg4); border-radius: 6px;
+    color: var(--tx2); cursor: pointer; transition: background .15s;
+  }
+  .modal-close:hover { background: var(--red); color: #fff; }
+  .modal-body { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 20px; }
+
+  .setting-group { display: flex; flex-direction: column; gap: 12px; }
+  .setting-group-label {
+    font-size: 10px; font-weight: 700; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--tx3);
+  }
+  .setting-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  }
+  .setting-info { flex: 1; }
+  .setting-name { font-size: 13px; font-weight: 500; }
+  .setting-desc { font-size: 11px; color: var(--tx3); margin-top: 2px; }
+  .toggle {
+    width: 38px; height: 22px;
+    background: var(--bg4); border: 1px solid var(--bd2);
+    border-radius: 99px; cursor: pointer; position: relative;
+    transition: background .2s; flex-shrink: 0;
+    appearance: none; -webkit-appearance: none;
+  }
+  .toggle:checked { background: var(--acc); border-color: var(--acc); }
+  .toggle::after {
+    content: ''; position: absolute;
+    width: 16px; height: 16px; border-radius: 50%;
+    background: #fff; top: 2px; left: 2px;
+    transition: transform .2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,.4);
+  }
+  .toggle:checked::after { transform: translateX(16px); }
+
+  .setting-select {
+    background: var(--bg4); border: 1px solid var(--bd2);
+    color: var(--tx); border-radius: 6px;
+    padding: 5px 10px; font-size: 12px; font-family: var(--font);
+    cursor: pointer; outline: none;
+    transition: border-color .15s;
+  }
+  .setting-select:focus { border-color: var(--acc); }
+
+  /* ── Mobile bottom nav ── */
+  .mobile-nav {
+    display: none;
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: var(--bg2);
+    border-top: 1px solid var(--bd);
+    padding: 8px 0 max(8px, env(safe-area-inset-bottom));
+    z-index: 50;
+    flex-direction: row;
+    justify-content: space-around;
+  }
+  .mobile-nav-btn {
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    padding: 4px 12px;
+    border: none; background: transparent;
+    color: var(--tx3); cursor: pointer;
+    font-family: var(--font); font-size: 10px; font-weight: 500;
+    transition: color .15s;
+  }
+  .mobile-nav-btn.active { color: var(--acc); }
+  .mobile-nav-btn svg { flex-shrink: 0; }
+
+  /* ── Responsive ── */
+  @media (max-width: 640px) {
+    .sidebar { position: fixed; top: 0; bottom: 0; left: 0; z-index: 40; }
+    .sidebar.collapsed { transform: translateX(-100%); width: var(--sidebar-w); min-width: var(--sidebar-w); }
+    .mobile-nav { display: flex; }
+    .content { padding-bottom: 64px; }
+    .tabs { display: none; }
+    .header-title { display: none; }
+  }
+
+  @media (max-width: 400px) {
+    :root { --sidebar-w: 240px; }
+    .msg-bubble { max-width: 86%; }
+  }
+
+  /* ── Welcome screen hero ── */
+  .welcome {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 28px; padding: 32px 20px;
+    overflow-y: auto;
+  }
+  .welcome-hero {
+    display: flex; flex-direction: column; align-items: center; gap: 12px;
+    text-align: center;
+  }
+  .welcome-logo {
+    width: 56px; height: 56px;
+    background: linear-gradient(135deg, var(--acc) 0%, #00b896 100%);
+    border-radius: 16px;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 4px;
+    box-shadow: 0 8px 32px rgba(0,229,188,.25);
+  }
+  .welcome-title { font-size: 22px; font-weight: 700; letter-spacing: -.3px; }
+  .welcome-sub { font-size: 14px; color: var(--tx2); max-width: 340px; line-height: 1.6; }
+
+  /* ── Overlay backdrop (mobile sidebar) ── */
+  .sidebar-backdrop {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.6);
+    z-index: 30;
+  }
+  .sidebar-backdrop.visible { display: block; }
+  @media (min-width: 641px) { .sidebar-backdrop { display: none !important; } }
+
+  /* ── Tooltip ── */
+  [data-tip] { position: relative; }
+  [data-tip]:hover::after {
+    content: attr(data-tip);
+    position: absolute; bottom: calc(100% + 6px); left: 50%;
+    transform: translateX(-50%);
+    background: var(--bg4); border: 1px solid var(--bd2);
+    color: var(--tx); font-size: 11px; font-weight: 500;
+    padding: 4px 8px; border-radius: 5px; white-space: nowrap;
+    pointer-events: none; z-index: 99;
+  }
+
+  /* ── Shimmer ── */
+  .shimmer {
+    background: linear-gradient(90deg, var(--bg3) 0%, var(--bg4) 50%, var(--bg3) 100%);
+    background-size: 200%;
+    animation: shimmer 1.8s infinite;
+    border-radius: 4px;
+  }
+  @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+  /* ── Accent gradient text ── */
+  .grad { background: linear-gradient(90deg, var(--acc), #79d4ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+
+// ─────────────── SVG Icons ───────────────
+const Icon = ({ name, size=16, ...p }) => {
+  const icons = {
+    menu: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>,
+    x: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" {...p}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+    plus: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" {...p}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
+    chat: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
+    code: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>,
+    eye: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>,
+    split: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" {...p}><rect x="3" y="3" width="8" height="18" rx="1"/><rect x="13" y="3" width="8" height="18" rx="1"/></svg>,
+    send: <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" {...p}><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>,
+    settings: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>,
+    paperclip: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>,
+    image: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>,
+    copy: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>,
+    check: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" {...p}><polyline points="20 6 9 17 4 12"/></svg>,
+    file: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>,
+    play: <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" {...p}><polygon points="5 3 19 12 5 21 5 3"/></svg>,
+    refresh: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>,
+    zap: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
+    cpu: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>,
+    star: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
+    box: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>,
+    wand: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M15 4V2"/><path d="M15 16v-2"/><path d="M8 9h2"/><path d="M20 9h2"/><path d="M17.8 11.8L19 13"/><path d="M15 9h.01"/><path d="M17.8 6.2L19 5"/><path d="m3 21 9-9"/><path d="M12.2 6.2L11 5"/></svg>,
+    terminal: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>,
+    globe: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>,
+    moon: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>,
+    key: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>,
+    bell: <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>,
+    forge: null,
+  };
+  if (name === 'forge') return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" {...p}>
+      <path d="M12 2L4 7v5c0 5.25 3.5 9.74 8 11 4.5-1.26 8-5.75 8-11V7L12 2z" fill="rgba(0,229,188,.2)" stroke="var(--acc)" strokeWidth="1.5" strokeLinejoin="round"/>
+      <path d="M9 12l2 2 4-4" stroke="var(--acc)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+  return icons[name] || <svg width={size} height={size} viewBox="0 0 24 24" {...p}/>;
+};
+
+// ─────────────── Syntax Highlighted Code ───────────────
+const SampleCode = () => (
+  <div className="editor-code">
+    <span className="t-cm">{'// Dashboard.jsx — Forge Coder Demo\n'}</span>
+    <span className="t-kw">{'import '}</span><span className="t-fn">{'React'}</span><span>{', '}</span><span className="t-nb">{'{'}</span><span className="t-fn">{' useState, useEffect '}</span><span className="t-nb">{'}'}</span><span className="t-kw">{' from '}</span><span className="t-str">{"'react'"}</span><span>{";\n"}</span>
+    <span className="t-kw">{'import '}</span><span className="t-nb">{'{'}</span><span className="t-fn">{' BarChart, LineChart, StatCard '}</span><span className="t-nb">{'}'}</span><span className="t-kw">{' from '}</span><span className="t-str">{"'./components/charts'"}</span><span>{";\n\n"}</span>
+    <span className="t-cm">{'// Sample data\n'}</span>
+    <span className="t-kw">{'const '}</span><span className="t-fn">{'METRICS'}</span><span>{' = [\n'}</span>
+    <span>{'  '}</span><span className="t-nb">{'{'}</span><span className="t-attr">{' label'}</span><span>{': '}</span><span className="t-str">{"'Active Users'"}</span><span>{', '}</span><span className="t-attr">{'value'}</span><span>{': '}</span><span className="t-num">{'12_847'}</span><span>{', '}</span><span className="t-attr">{'delta'}</span><span>{': '}</span><span className="t-num">{'+'}</span><span className="t-str">{"'8.2%'"}</span><span>{' '}</span><span className="t-nb">{'}'}</span><span>{';\n'}</span>
+    <span>{'  '}</span><span className="t-nb">{'{'}</span><span className="t-attr">{' label'}</span><span>{': '}</span><span className="t-str">{"'Revenue'"}</span><span>{', '}</span><span className="t-attr">{'value'}</span><span>{': '}</span><span className="t-str">{"'$94.2k'"}</span><span>{', '}</span><span className="t-attr">{'delta'}</span><span>{': '}</span><span className="t-str">{"'+12.1%'"}</span><span>{' '}</span><span className="t-nb">{'}'}</span><span>{';\n'}</span>
+    <span>{'  '}</span><span className="t-nb">{'{'}</span><span className="t-attr">{' label'}</span><span>{': '}</span><span className="t-str">{"'Conversion'"}</span><span>{', '}</span><span className="t-attr">{'value'}</span><span>{': '}</span><span className="t-str">{"'3.47%'"}</span><span>{', '}</span><span className="t-attr">{'delta'}</span><span>{': '}</span><span className="t-str">{"'-0.3%'"}</span><span>{' '}</span><span className="t-nb">{'}'}</span><span>{';\n'}</span>
+    <span>{'];\n\n'}</span>
+    <span className="t-kw">{'export default function '}</span><span className="t-fn">{'Dashboard'}</span><span>{'() '}</span><span className="t-nb">{'{'}</span><span>{'\n'}</span>
+    <span>{'  '}</span><span className="t-kw">{'const '}</span><span className="t-nb">{'['}</span><span className="t-fn">{'range'}</span><span>{', '}</span><span className="t-fn">{'setRange'}</span><span className="t-nb">{']'}</span><span>{' = '}</span><span className="t-fn">{'useState'}</span><span>{'('}</span><span className="t-str">{"'7d'"}</span><span>{');\n'}</span>
+    <span>{'  '}</span><span className="t-kw">{'const '}</span><span className="t-nb">{'['}</span><span className="t-fn">{'data'}</span><span>{', '}</span><span className="t-fn">{'setData'}</span><span className="t-nb">{']'}</span><span>{' = '}</span><span className="t-fn">{'useState'}</span><span>{'('}</span><span className="t-nb">{'[]'}</span><span>{');\n\n'}</span>
+    <span>{'  '}</span><span className="t-fn">{'useEffect'}</span><span>{'(() => '}</span><span className="t-nb">{'{'}</span><span>{'\n'}</span>
+    <span>{'    '}</span><span className="t-fn">{'fetchMetrics'}</span><span>{'('}</span><span className="t-fn">{'range'}</span><span>{')'}</span><span className="t-op">{'.then'}</span><span>{'('}</span><span className="t-fn">{'setData'}</span><span>{');\n'}</span>
+    <span>{'  '}</span><span className="t-nb">{'}'}</span><span>{', ['}</span><span className="t-fn">{'range'}</span><span>{']);\n\n'}</span>
+    <span>{'  '}</span><span className="t-kw">{'return '}</span><span>{'(\n'}</span>
+    <span>{'    '}</span><span className="t-tag">{'<div'}</span><span className="t-attr">{' className'}</span><span>{'='}</span><span className="t-val">{'"dashboard"'}</span><span className="t-tag">{'>'}</span><span>{'\n'}</span>
+    <span>{'      '}</span><span className="t-tag">{'<header'}</span><span className="t-attr">{' className'}</span><span>{'='}</span><span className="t-val">{'"dash-header"'}</span><span className="t-tag">{'>'}</span><span>{'\n'}</span>
+    <span>{'        '}</span><span className="t-tag">{'<h1>'}</span><span>{'Analytics Dashboard'}</span><span className="t-tag">{'</h1>'}</span><span>{'\n'}</span>
+    <span>{'        '}</span><span className="t-tag">{'<RangePicker'}</span><span className="t-attr">{' value'}</span><span>{'={'}</span><span className="t-nb">{'{'}</span><span className="t-fn">{'range'}</span><span className="t-nb">{'}'}</span><span className="t-attr">{' onChange'}</span><span>{'={'}</span><span className="t-nb">{'{'}</span><span className="t-fn">{'setRange'}</span><span className="t-nb">{'}'}</span><span>{' '}</span><span className="t-tag">{'/>'}</span><span>{'\n'}</span>
+    <span>{'      '}</span><span className="t-tag">{'</header>'}</span><span>{'\n'}</span>
+    <span>{'      '}</span><span className="t-tag">{'<div'}</span><span className="t-attr">{' className'}</span><span>{'='}</span><span className="t-val">{'"stat-grid"'}</span><span className="t-tag">{'>'}</span><span>{'\n'}</span>
+    <span>{'        '}</span><span className="t-nb">{'{'}</span><span className="t-fn">{'METRICS'}</span><span>{'.map(m => '}</span><span className="t-nb">{'('}</span><span>{'\n'}</span>
+    <span>{'          '}</span><span className="t-tag">{'<StatCard'}</span><span className="t-attr">{' key'}</span><span>{'={'}</span><span className="t-nb">{'{'}</span><span className="t-fn">{'m.label'}</span><span className="t-nb">{'}'}</span><span>{' '}</span><span className="t-nb">{'{'}</span><span>{'...'}</span><span className="t-fn">{'m'}</span><span className="t-nb">{'}'}</span><span>{' '}</span><span className="t-tag">{'/>'}</span><span>{'\n'}</span>
+    <span>{'        '}</span><span className="t-nb">{')'}</span><span>{')'}</span><span className="t-nb">{'}'}</span><span>{'\n'}</span>
+    <span>{'      '}</span><span className="t-tag">{'</div>'}</span><span>{'\n'}</span>
+    <span>{'      '}</span><span className="t-tag">{'<LineChart'}</span><span className="t-attr">{' data'}</span><span>{'={'}</span><span className="t-nb">{'{'}</span><span className="t-fn">{'data'}</span><span className="t-nb">{'}'}</span><span>{' '}</span><span className="t-tag">{'/>'}</span><span>{'\n'}</span>
+    <span>{'    '}</span><span className="t-tag">{'</div>'}</span><span>{'\n'}</span>
+    <span>{'  );\n'}</span>
+    <span className="t-nb">{'}'}</span>
+  </div>
+);
+
+// ─────────────── Code block inside chat ───────────────
+const ChatCodeBlock = ({ onCopy }) => {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = () => {
+    setCopied(true);
+    onCopy && onCopy();
+    setTimeout(() => setCopied(false), 2000);
+  };
+  return (
+    <div className="code-block">
+      <div className="code-block-header">
+        <span>jsx</span>
+        <button className={`copy-btn ${copied ? 'copied' : ''}`} onClick={handleCopy}>
+          {copied ? <Icon name="check" size={11}/> : <Icon name="copy" size={11}/>}
+          {copied ? 'Copied!' : 'Copy'}
+        </button>
+      </div>
+      <div className="code-content">
+        <span className="t-kw">{'import '}</span><span className="t-fn">{'React'}</span><span>{', '}</span><span className="t-nb">{'{'}</span><span className="t-fn">{' useState '}</span><span className="t-nb">{'}'}</span><span className="t-kw">{' from '}</span><span className="t-str">{"'react'"}</span><span>{";\n\n"}</span>
+        <span className="t-kw">{'function '}</span><span className="t-fn">{'Counter'}</span><span>{'() '}</span><span className="t-nb">{'{'}</span><span>{"\n"}</span>
+        <span>{'  '}</span><span className="t-kw">{'const '}</span><span className="t-nb">{'['}</span><span className="t-fn">{'count'}</span><span>{', '}</span><span className="t-fn">{'setCount'}</span><span className="t-nb">{']'}</span>
+        <span>{' = '}</span><span className="t-fn">{'useState'}</span><span>{'('}</span><span className="t-num">{'0'}</span><span>{');\n'}</span>
+        <span>{'  '}</span><span className="t-kw">{'return '}</span><span>{'(\n'}</span>
+        <span>{'    '}</span><span className="t-tag">{'<div'}</span><span className="t-attr">{' className'}</span><span>{'='}</span><span className="t-val">{'"counter"'}</span><span className="t-tag">{'>'}</span><span>{'\n'}</span>
+        <span>{'      '}</span><span className="t-tag">{'<p>'}</span><span>{'Count: '}</span><span className="t-nb">{'{'}</span><span className="t-fn">{'count'}</span><span className="t-nb">{'}'}</span><span className="t-tag">{'</p>'}</span><span>{'\n'}</span>
+        <span>{'      '}</span><span className="t-tag">{'<button'}</span><span className="t-attr">{' onClick'}</span><span>{'={'}</span><span className="t-nb">{'{'}</span><span>{'() => '}</span><span className="t-fn">{'setCount'}</span><span>{'('}</span><span className="t-fn">{'c'}</span><span>{' + '}</span><span className="t-num">{'1'}</span><span>{')'}</span><span className="t-nb">{'}'}</span><span className="t-tag">{'>'}</span><span>{'\n'}</span>
+        <span>{'        Increment\n'}</span>
+        <span>{'      '}</span><span className="t-tag">{'</button>'}</span><span>{'\n'}</span>
+        <span>{'    '}</span><span className="t-tag">{'</div>'}</span><span>{'\n'}</span>
+        <span>{'  );\n'}</span>
+        <span className="t-nb">{'}'}</span><span>{'\n\n'}</span>
+        <span className="t-kw">{'export default '}</span><span className="t-fn">{'Counter'}</span><span>{';\n'}</span>
+      </div>
+    </div>
+  );
+};
+
+// ─────────────── Settings Modal ───────────────
+const SettingsModal = ({ onClose }) => {
+  const [settings, setSettings] = useState({
+    streaming: true, autoSave: true, lineNumbers: true,
+    wordWrap: false, notifications: false, darkMode: true,
+    model: 'claude-3-7-sonnet', theme: 'dark', fontSize: '13',
+  });
+  const toggle = key => setSettings(s => ({ ...s, [key]: !s[key] }));
+
+  return (
+    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal">
+        <div className="modal-header">
+          <div className="modal-title">Settings</div>
+          <button className="modal-close" onClick={onClose}><Icon name="x" size={14}/></button>
+        </div>
+        <div className="modal-body">
+          <div className="setting-group">
+            <div className="setting-group-label">AI Model</div>
+            <div className="setting-row">
+              <div className="setting-info">
+                <div className="setting-name">Model</div>
+                <div className="setting-desc">Select the AI model for generation</div>
+              </div>
+              <select
+                className="setting-select"
+                value={settings.model}
+                onChange={e => setSettings(s => ({ ...s, model: e.target.value }))}
+              >
+                <option value="claude-3-7-sonnet">Claude 3.7 Sonnet</option>
+                <option value="claude-3-5-sonnet">Claude 3.5 Sonnet</option>
+                <option value="claude-3-opus">Claude 3 Opus</option>
+                <option value="gpt-4o">GPT-4o</option>
+                <option value="gemini-pro">Gemini 1.5 Pro</option>
+              </select>
+            </div>
+            <div className="setting-row">
+              <div className="setting-info">
+                <div className="setting-name">Streaming responses</div>
+                <div className="setting-desc">Display AI output token-by-token as it arrives</div>
+              </div>
+              <input type="checkbox" className="toggle" checked={settings.streaming} onChange={() => toggle('streaming')}/>
+            </div>
+          </div>
+
+          <div className="setting-group">
+            <div className="setting-group-label">Editor</div>
+            <div className="setting-row">
+              <div className="setting-info">
+                <div className="setting-name">Font size</div>
+                <div className="setting-desc">Code editor font size in px</div>
+              </div>
+              <select
+                className="setting-select"
+                value={settings.fontSize}
+                onChange={e => setSettings(s => ({ ...s, fontSize: e.target.value }))}
+              >
+                {['11','12','13','14','15','16'].map(s => <option key={s}>{s}</option>)}
+              </select>
+            </div>
+            <div className="setting-row">
+              <div className="setting-info">
+                <div className="setting-name">Line numbers</div>
+                <div className="setting-desc">Show line numbers in the code editor</div>
+              </div>
+              <input type="checkbox" className="toggle" checked={settings.lineNumbers} onChange={() => toggle('lineNumbers')}/>
+            </div>
+            <div className="setting-row">
+              <div className="setting-info">
+                <div className="setting-name">Word wrap</div>
+                <div className="setting-desc">Wrap long lines in the editor</div>
+              </div>
+              <input type="checkbox" className="toggle" checked={settings.wordWrap} onChange={() => toggle('wordWrap')}/>
+            </div>
+            <div className="setting-row">
+              <div className="setting-info">
+                <div className="setting-name">Auto-save</div>
+                <div className="setting-desc">Automatically save files on change</div>
+              </div>
+              <input type="checkbox" className="toggle" checked={settings.autoSave} onChange={() => toggle('autoSave')}/>
+            </div>
+          </div>
+
+          <div className="setting-group">
+            <div className="setting-group-label">Appearance</div>
+            <div className="setting-row">
+              <div className="setting-info">
+                <div className="setting-name">Theme</div>
+                <div className="setting-desc">Editor color theme</div>
+              </div>
+              <select
+                className="setting-select"
+                value={settings.theme}
+                onChange={e => setSettings(s => ({ ...s, theme: e.target.value }))}
+              >
+                <option value="dark">Forge Dark</option>
+                <option value="darker">Forge Darker</option>
+                <option value="light">Light</option>
+              </select>
+            </div>
+            <div className="setting-row">
+              <div className="setting-info">
+                <div className="setting-name">Dark mode</div>
+                <div className="setting-desc">Use dark interface theme</div>
+              </div>
+              <input type="checkbox" className="toggle" checked={settings.darkMode} onChange={() => toggle('darkMode')}/>
+            </div>
+          </div>
+
+          <div className="setting-group">
+            <div className="setting-group-label">Notifications</div>
+            <div className="setting-row">
+              <div className="setting-info">
+                <div className="setting-name">Desktop notifications</div>
+                <div className="setting-desc">Get notified when long tasks complete</div>
+              </div>
+              <input type="checkbox" className="toggle" checked={settings.notifications} onChange={() => toggle('notifications')}/>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─────────────── Suggestion Cards ───────────────
+const SUGGESTIONS = [
+  {
+    icon: <Icon name="zap" size={14} style={{color:'#f5c842'}}/>,
+    bg: 'rgba(245,200,66,.1)',
+    title: 'Build a React dashboard',
+    desc: 'Charts, stat cards and live filters',
+    prompt: 'Build me a React analytics dashboard with bar charts, stat cards, and date range filters',
+  },
+  {
+    icon: <Icon name="wand" size={14} style={{color:'#a78bfa'}}/>,
+    bg: 'rgba(167,139,250,.1)',
+    title: 'Refactor my component',
+    desc: 'Improve performance and readability',
+    prompt: 'Review and refactor this React component for better performance and readability',
+  },
+  {
+    icon: <Icon name="terminal" size={14} style={{color:'#00e5bc'}}/>,
+    bg: 'rgba(0,229,188,.1)',
+    title: 'Write a REST API',
+    desc: 'Node.js + Express with auth',
+    prompt: 'Create a Node.js REST API with Express, JWT authentication, and CRUD endpoints',
+  },
+  {
+    icon: <Icon name="box" size={14} style={{color:'#5b8fff'}}/>,
+    bg: 'rgba(91,143,255,.1)',
+    title: 'Add TypeScript types',
+    desc: 'Auto-generate from existing code',
+    prompt: 'Add TypeScript types and interfaces to my existing JavaScript React project',
+  },
+  {
+    icon: <Icon name="star" size={14} style={{color:'#ff9f7b'}}/>,
+    bg: 'rgba(255,159,123,.1)',
+    title: 'Write unit tests',
+    desc: 'Jest + React Testing Library',
+    prompt: 'Write comprehensive unit tests using Jest and React Testing Library for my components',
+  },
+  {
+    icon: <Icon name="globe" size={14} style={{color:'#79d4ff'}}/>,
+    bg: 'rgba(121,212,255,.1)',
+    title: 'Responsive CSS layout',
+    desc: 'Grid and flexbox for all screens',
+    prompt: 'Create a fully responsive CSS layout using Grid and Flexbox that works on all screen sizes',
+  },
+];
+
+// ─────────────── Main App ───────────────
+function App() {
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [activeTab, setActiveTab] = useState('chat');
+  const [showSettings, setShowSettings] = useState(false);
+  const [inputValue, setInputValue] = useState('');
+  const [messages, setMessages] = useState([
+    {
+      id: 1, role: 'user',
+      text: 'Can you show me a simple React counter component with useState?',
+      time: '10:14 AM',
+    },
+    {
+      id: 2, role: 'ai',
+      text: "Sure! Here's a clean counter component using React's useState hook. It demonstrates the core pattern of controlled state — the count lives in component state, and the button's onClick handler calls the setter to trigger a re-render.",
+      hasCode: true,
+      time: '10:14 AM',
+    },
+  ]);
+  const [isTyping, setIsTyping] = useState(false);
+  const [files, setFiles] = useState([]);
+  const [activeConv, setActiveConv] = useState(0);
+  const [conversations, setConversations] = useState([
+    { id: 0, name: 'React Interactive Dashboard', date: 'Today' },
+    { id: 1, name: 'Node.js Auth Middleware', date: 'Yesterday' },
+    { id: 2, name: 'TypeScript Generics Guide', date: 'May 26' },
+  ]);
+
+  const textareaRef = useRef(null);
+  const messagesEndRef = useRef(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, isTyping]);
+
+  const handleSend = () => {
+    const val = inputValue.trim();
+    if (!val) return;
+    const newMsg = { id: Date.now(), role: 'user', text: val, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) };
+    setMessages(m => [...m, newMsg]);
+    setInputValue('');
+    if (textareaRef.current) textareaRef.current.style.height = 'auto';
+    setIsTyping(true);
+    setTimeout(() => {
+      setIsTyping(false);
+      setMessages(m => [...m, {
+        id: Date.now() + 1,
+        role: 'ai',
+        text: "I've analyzed your request. Here's what I can help you with — this is a demo response since no API is connected. In the real app, Forge Coder streams the AI output token by token directly into the chat. You'd see the response appear gradually with full syntax-highlighted code blocks.",
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      }]);
+    }, 1800);
+  };
+
+  const handleKey = e => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  const handleTextareaInput = e => {
+    setInputValue(e.target.value);
+    e.target.style.height = 'auto';
+    e.target.style.height = Math.min(e.target.scrollHeight, 160) + 'px';
+  };
+
+  const handleSuggestion = (prompt) => {
+    setInputValue(prompt);
+    setTimeout(() => textareaRef.current?.focus(), 0);
+  };
+
+  const handleNewChat = () => {
+    const newId = Date.now();
+    setConversations(c => [{ id: newId, name: 'New Conversation', date: 'Just now' }, ...c]);
+    setActiveConv(newId);
+    setMessages([]);
+    setInputValue('');
+  };
+
+  const removeFile = name => setFiles(f => f.filter(x => x !== name));
+
+  const addDemoFile = () => {
+    const names = ['Dashboard.jsx', 'App.tsx', 'styles.css', 'utils.ts', 'index.html'];
+    const unused = names.filter(n => !files.includes(n));
+    if (unused.length) setFiles(f => [...f, unused[0]]);
+  };
+
+  const TABS = [
+    { id: 'chat',    label: 'Chat',     icon: 'chat'     },
+    { id: 'code',    label: 'Editor',   icon: 'code'     },
+    { id: 'preview', label: 'Preview',  icon: 'eye'      },
+    { id: 'split',   label: 'Split',    icon: 'split'    },
+  ];
+
+  const lineNums = Array.from({ length: 48 }, (_, i) => i + 1);
+
+  // ── Preview content (static HTML rendered in srcdoc) ──
+  const previewSrc = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
+    body { margin:0; font-family: system-ui, sans-serif; background:#f5f7fa; display:flex; align-items:center; justify-content:center; min-height:100vh; }
+    .card { background:#fff; border-radius:12px; padding:32px; box-shadow:0 4px 24px rgba(0,0,0,.08); max-width:400px; width:90%; text-align:center; }
+    h1 { margin:0 0 8px; font-size:20px; color:#1a1a2e; }
+    p { color:#666; margin:0 0 24px; font-size:14px; }
+    .counter-val { font-size:48px; font-weight:700; color:#00c49f; margin:16px 0; font-variant-numeric:tabular-nums; }
+    button { padding:10px 24px; border:none; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; margin:4px; transition:all .15s; }
+    .inc { background:#00c49f; color:#fff; } .inc:hover { background:#00a87e; }
+    .dec { background:#f0f0f0; color:#333; } .dec:hover { background:#e0e0e0; }
+    .reset { background:transparent; border:1px solid #ddd !important; color:#999; font-size:12px; padding:6px 16px !important; }
+  </style></head><body>
+  <div class="card">
+    <h1>Counter Component</h1>
+    <p>Live preview — generated by Forge Coder</p>
+    <div class="counter-val" id="val">0</div>
+    <div>
+      <button class="dec" onclick="upd(-1)">&#x2212; Decrement</button>
+      <button class="inc" onclick="upd(1)">&#x2b; Increment</button>
+    </div>
+    <br/><button class="reset" onclick="upd(0, true)">Reset</button>
+  </div>
+  <script>let c=0; function upd(d,r){c=r?0:c+d; document.getElementById('val').textContent=c;}<\/script>
+  </body></html>`;
+
+  // ── Render views ──
+  const renderChat = () => (
+    <div className="chat-pane">
+      <div className="messages">
+        {messages.length === 0 && (
+          <div className="welcome">
+            <div className="welcome-hero">
+              <div className="welcome-logo">
+                <Icon name="forge" size={28}/>
+              </div>
+              <div className="welcome-title">Welcome to <span className="grad">Forge Coder</span></div>
+              <div className="welcome-sub">Your AI-powered coding assistant. Ask me to build, debug, refactor, or explain any code.</div>
+            </div>
+          </div>
+        )}
+        {messages.map((msg, i) => (
+          <div key={msg.id} className="msg-wrapper">
+            <div className={`msg-row ${msg.role}`}>
+              {msg.role === 'ai' && <div className="msg-avatar ai">FC</div>}
+              {msg.role === 'user' && <div className="msg-avatar user-av">U</div>}
+              <div className="msg-bubble">
+                {msg.text}
+                {msg.hasCode && <ChatCodeBlock />}
+              </div>
+            </div>
+            <div className={`msg-meta ${msg.role === 'user' ? 'msg-row user' : ''}`}>
+              <span>{msg.role === 'ai' ? 'Forge Coder' : 'You'}</span>
+              <span>{msg.time}</span>
+            </div>
+          </div>
+        ))}
+        {isTyping && (
+          <div className="msg-wrapper">
+            <div className="msg-row ai">
+              <div className="msg-avatar ai">FC</div>
+              <div className="msg-bubble">
+                <div className="typing-dots">
+                  <span/><span/><span/>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        <div ref={messagesEndRef}/>
+      </div>
+
+      {messages.length === 0 && (
+        <div className="suggestions">
+          <div className="sugg-title">Suggestions</div>
+          <div className="sugg-grid">
+            {SUGGESTIONS.map((s, i) => (
+              <div key={i} className="sugg-card" onClick={() => handleSuggestion(s.prompt)}>
+                <div className="sugg-card-icon" style={{ background: s.bg }}>{s.icon}</div>
+                <div className="sugg-card-title">{s.title}</div>
+                <div className="sugg-card-desc">{s.desc}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="input-bar">
+        <div className="input-wrap">
+          {files.length > 0 && (
+            <div className="file-chips">
+              {files.map(f => (
+                <div key={f} className="file-chip">
+                  <Icon name="file" size={11}/>
+                  {f}
+                  <button className="chip-remove" onClick={() => removeFile(f)}>&times;</button>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="input-top">
+            <textarea
+              ref={textareaRef}
+              className="input-textarea"
+              placeholder="Ask Forge Coder anything... (Shift+Enter for new line)"
+              value={inputValue}
+              onChange={handleTextareaInput}
+              onKeyDown={handleKey}
+              rows={1}
+            />
+            <button
+              className="input-send"
+              onClick={handleSend}
+              disabled={!inputValue.trim()}
+            >
+              <Icon name="send" size={14}/>
+            </button>
+          </div>
+          <div className="input-bottom">
+            <button className="attach-btn" onClick={addDemoFile} data-tip="Attach file">
+              <Icon name="paperclip" size={11}/>
+              Attach
+            </button>
+            <button className="attach-btn" data-tip="Add image">
+              <Icon name="image" size={11}/>
+              Image
+            </button>
+            <span className="input-hint">Enter to send &nbsp;·&nbsp; Shift+Enter for newline</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderEditor = () => (
+    <div className="editor-pane">
+      <div className="editor-topbar">
+        {['Dashboard.jsx', 'App.tsx', 'styles.css'].map((name, i) => (
+          <div key={name} className={`file-tab ${i === 0 ? 'active' : ''}`}>
+            {i === 0 && <span className="dot"/>}
+            <Icon name="file" size={11} style={{ color: i === 0 ? 'var(--acc)' : 'var(--tx3)' }}/>
+            {name}
+          </div>
+        ))}
+      </div>
+      <div className="editor-body">
+        <div className="line-nums">
+          {lineNums.map(n => <div key={n}>{n}</div>)}
+        </div>
+        <SampleCode />
+      </div>
+    </div>
+  );
+
+  const renderPreview = () => (
+    <div className="preview-pane">
+      <div className="preview-topbar">
+        <button className="icon-btn" data-tip="Refresh">
+          <Icon name="refresh" size={14}/>
+        </button>
+        <div className="preview-url">
+          <span className="preview-dot" style={{ background: '#4caf50' }}/>
+          <span>localhost:5173 — Counter Component</span>
+        </div>
+        <button className="icon-btn" data-tip="Open in new tab">
+          <Icon name="globe" size={14}/>
+        </button>
+      </div>
+      <div className="preview-body">
+        <iframe
+          className="preview-frame"
+          srcDoc={previewSrc}
+          sandbox="allow-scripts"
+          title="Preview"
+        />
+      </div>
+    </div>
+  );
+
+  const renderSplit = () => (
+    <div className="split-pane">
+      <div style={{ flex: 1, display: 'flex', overflow: 'hidden', minWidth: 0 }}>
+        {renderEditor()}
+      </div>
+      <div className="split-divider"/>
+      <div style={{ flex: 1, display: 'flex', overflow: 'hidden', minWidth: 0 }}>
+        {renderPreview()}
+      </div>
+    </div>
+  );
+
+  const convTitle = conversations.find(c => c.id === activeConv)?.name || 'Forge Coder';
+
+  return (
+    <>
+      {/* Mobile sidebar backdrop */}
+      <div
+        className={`sidebar-backdrop ${sidebarOpen && window.innerWidth <= 640 ? 'visible' : ''}`}
+        onClick={() => setSidebarOpen(false)}
+      />
+
+      <div id="root" style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
+        {/* ── Sidebar ── */}
+        <aside className={`sidebar ${sidebarOpen ? '' : 'collapsed'}`}>
+          <div className="sidebar-logo">
+            <div className="logo-icon"><Icon name="forge" size={18}/></div>
+            <span className="logo-text">Forge <span>Coder</span></span>
+          </div>
+
+          <div className="sidebar-actions">
+            <button className="btn-new-chat" onClick={handleNewChat}>
+              <Icon name="plus" size={14}/>
+              New conversation
+            </button>
+          </div>
+
+          <div className="sidebar-section">Recent</div>
+          <div className="conv-list">
+            {conversations.map(conv => (
+              <div
+                key={conv.id}
+                className={`conv-item ${activeConv === conv.id ? 'active' : ''}`}
+                onClick={() => setActiveConv(conv.id)}
+              >
+                <Icon name="chat" size={13} className="conv-icon"/>
+                <span className="conv-name">{conv.name}</span>
+                <span className="conv-date">{conv.date}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="sidebar-footer">
+            <div className="user-row">
+              <div className="avatar">U</div>
+              <div className="user-info">
+                <div className="user-name">Developer</div>
+                <div className="user-plan">Pro Plan</div>
+              </div>
+              <button className="icon-btn" onClick={() => setShowSettings(true)}>
+                <Icon name="settings" size={14}/>
+              </button>
+            </div>
+          </div>
+        </aside>
+
+        {/* ── Main ── */}
+        <div className="main">
+          {/* ── Header ── */}
+          <header className="header">
+            <button className="header-toggle" onClick={() => setSidebarOpen(s => !s)} data-tip={sidebarOpen ? 'Close sidebar' : 'Open sidebar'}>
+              {sidebarOpen
+                ? <Icon name="x" size={16}/>
+                : <Icon name="menu" size={16}/>
+              }
+            </button>
+            <div className="header-title">{convTitle}</div>
+
+            <div className="tabs">
+              {TABS.map(t => (
+                <button
+                  key={t.id}
+                  className={`tab-btn ${activeTab === t.id ? 'active' : ''}`}
+                  onClick={() => setActiveTab(t.id)}
+                >
+                  <Icon name={t.icon} size={12}/>
+                  {t.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="header-actions">
+              <button className="icon-btn" data-tip="Run code">
+                <Icon name="play" size={14}/>
+              </button>
+              <button className="icon-btn" data-tip="Settings" onClick={() => setShowSettings(true)}>
+                <Icon name="settings" size={14}/>
+              </button>
+            </div>
+          </header>
+
+          {/* ── Content ── */}
+          <div className="content">
+            {activeTab === 'chat'    && renderChat()}
+            {activeTab === 'code'    && renderEditor()}
+            {activeTab === 'preview' && renderPreview()}
+            {activeTab === 'split'   && renderSplit()}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Mobile bottom nav ── */}
+      <nav className="mobile-nav">
+        {TABS.map(t => (
+          <button
+            key={t.id}
+            className={`mobile-nav-btn ${activeTab === t.id ? 'active' : ''}`}
+            onClick={() => setActiveTab(t.id)}
+          >
+            <Icon name={t.icon} size={20}/>
+            {t.label}
+          </button>
+        ))}
+      </nav>
+
+      {/* ── Settings Modal ── */}
+      {showSettings && <SettingsModal onClose={() => setShowSettings(false)}/>}
+    </>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+</script>
+</body>
+</html>
